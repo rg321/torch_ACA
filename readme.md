@@ -1,4 +1,4 @@
-# Update: ACA is now integrated into TorchDiffEqPack (https://jzkay12.github.io/TorchDiffEqPack/) with more flexiable API to support tuple-output ODEs and more examples.
+# Update: ACA is now integrated into TorchDiffEqPack (https://jzkay12.github.io/TorchDiffEqPack/) with more flexiable API to support tuple-output ODEs, memory efficient asynchronous leapfrog integrator (MALI) and more examples.
 
 # PyTorch implementation of "Adaptive Checkpoint Adjoint" (ACA) for an accurate and differentiable ODE solver [[arxiv]](https://arxiv.org/abs/2006.02493)[[slides]](https://docs.google.com/presentation/d/1SHSJUJpof5_KbgTGyDfkoso25dGhmICU70yFFs_3dAw/edit?usp=sharing)
 - This library provides ordinary differential equation (ODE) solvers implemented in PyTorch as proposed in [[1]](https://arxiv.org/abs/2006.02493), and can be plugged into exisiting neural network models. <br/>
