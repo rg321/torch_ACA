@@ -14,6 +14,7 @@ import numpy as np
 from tensorboardX import SummaryWriter
 import math
 import sys
+sys.path.append('./')
 import os
 import shutil
 from torch_ACA import odesolve_adjoint as odesolve
