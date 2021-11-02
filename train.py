@@ -12,12 +12,14 @@ import torchvision.datasets as datasets
 import argparse
 import logging
 import numpy as np
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 import math
 import sys
 import os
 import shutil
 from torch_ACA import odesolve_endtime as odesolve
+
+from data_helper import get_galaxyZoo_loaders
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 def lr_schedule(lr, epoch):
@@ -33,7 +35,7 @@ def lr_schedule(lr, epoch):
 parser = argparse.ArgumentParser()
 parser.add_argument('--network', type = str, choices = ['resnet', 'sqnxt'], default = 'resnet')
 parser.add_argument('--method', type = str, choices=['Euler', 'RK2', 'RK4','RK23','RK45','RK12','Dopri5'], default = 'RK12')
-parser.add_argument('--num_epochs', type = int, default = 90)
+parser.add_argument('--num_epochs', type = int, default = 50)
 parser.add_argument('--start_epoch', type = int, default = 0)
 # Checkpoints
 parser.add_argument('-c', '--checkpoint', default='./checkpoint', type=str, metavar='PATH',
@@ -50,14 +52,16 @@ parser.add_argument('--atol', type=float, default = 1e-2, help='Absolute toleran
 parser.add_argument('--print_neval', type=bool, default = False, help='Print number of evaluation or not')
 parser.add_argument('--neval_max', type=int, default = 50000, help='Maximum number of evaluation in integration')
 
-parser.add_argument('--batch_size', type = int, default = 128)
+parser.add_argument('--batch_size', type = int, default = 20)
+parser.add_argument('--test_batch_size', type = int, default = 10)
+parser.add_argument('--dataset', type = str, choices = ['CIFAR10', 'GalaxyZoo', 'MTVSO'], default = 'CIFAR10')
 args = parser.parse_args()
 if args.network == 'sqnxt':
-    from models.sqnxt import SqNxt_23_1x
-    writer = SummaryWriter('sqnxt/'+args.network +'_' + args.method + '_lr_' + str(args.lr) + '_h_' + str(args.h) + '/')
+    from cifar_classification.models.sqnxt import SqNxt_23_1x
+    # writer = SummaryWriter('sqnxt/'+args.network +'_' + args.method + '_lr_' + str(args.lr) + '_h_' + str(args.h) + '/')
 elif args.network == 'resnet':
-    from models.resnet import ResNet18
-    writer = SummaryWriter('resnet/'+args.network+'_'+ args.method + '_lr_' + str(args.lr) + '_h_' + str(args.h) + '/')
+    from cifar_classification.models.resnet import ResNet18
+    # writer = SummaryWriter('resnet/'+args.network+'_'+ args.method + '_lr_' + str(args.lr) + '_h_' + str(args.h) + '/')
 
 
 num_epochs = int(args.num_epochs)
@@ -119,15 +123,22 @@ transform_test  = transforms.Compose([
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
-train_dataset = torchvision.datasets.CIFAR10(root='./data', transform = transform_train, train = True, download = True)
-test_dataset = torchvision.datasets.CIFAR10(root='./data', transform = transform_test, train = False, download = True)
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = batch_size, num_workers = 4, shuffle = True)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size = 128, num_workers = 4, shuffle = False)
+# train_dataset = torchvision.datasets.CIFAR10(root='./data', transform = transform_train, train = True, download = True)
+# test_dataset = torchvision.datasets.CIFAR10(root='./data', transform = transform_test, train = False, download = True)
+# train_loader = torch.utils.data.DataLoader(train_dataset, batch_size = batch_size, num_workers = 4, shuffle = True)
+# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size = 128, num_workers = 4, shuffle = False)
+
+train_loader, test_loader, train_dataset = get_galaxyZoo_loaders(batch_size=args.batch_size, test_batch_size=args.test_batch_size)
+
+if args.dataset == 'MTVSO':
+    num_classes = 20
+else:
+    num_classes = 10
 
 if args.network == 'sqnxt':
-    net = SqNxt_23_1x(10, ODEBlock)
+    net = SqNxt_23_1x(num_classes, ODEBlock)
 elif args.network == 'resnet':
-    net = ResNet18(ODEBlock)
+    net = ResNet18(ODEBlock, num_classes=num_classes)
 
 net.apply(conv_init)
 print(net)
@@ -154,19 +165,20 @@ def train(epoch):
             loss.backward()
 
         optimizer.step()
-        writer.add_scalar('Train/Loss', loss.item(), epoch* 50000 + batch_size * (idx + 1)  )
+        # writer.add_scalar('Train/Loss', loss.item(), epoch* 50000 + batch_size * (idx + 1)  )
         train_loss += loss.item()
         _, predict = torch.max(outputs, 1)
         total += labels.size(0)
         correct += predict.eq(labels).cpu().sum().double()
         
         sys.stdout.write('\r')
-        sys.stdout.write('[%s] Training Epoch [%d/%d] Iter[%d/%d]\t\tLoss: %.4f Acc@1: %.3f'
+        sys.stdout.write('[%s] Training Epoch [%d/%d] Loss: %.4f Acc@1: %.3f'
                         % (time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
-                           epoch, num_epochs, idx, len(train_dataset) // batch_size, 
+                           epoch, num_epochs, 
+                           # idx, len(train_dataset) // batch_size, 
                           train_loss / (batch_size * (idx + 1)), correct / total))
         sys.stdout.flush()
-    writer.add_scalar('Train/Accuracy', correct / total, epoch )
+    # writer.add_scalar('Train/Accuracy', correct / total, epoch )
         
 def test(epoch):
     net.eval()
@@ -183,17 +195,16 @@ def test(epoch):
         _, predict = torch.max(outputs, 1)
         total += labels.size(0)
         correct += predict.eq(labels).cpu().sum().double()
-        writer.add_scalar('Test/Loss', loss.item(), epoch* 50000 + test_loader.batch_size * (idx + 1)  )
+        # writer.add_scalar('Test/Loss', loss.item(), epoch* 50000 + test_loader.batch_size * (idx + 1)  )
         
         sys.stdout.write('\r')
-        sys.stdout.write('[%s] Testing Epoch [%d/%d] Iter[%d/%d]\t\tLoss: %.4f Acc@1: %.3f'
+        sys.stdout.write('[%s] Testing Epoch  [%d/%d] Loss: %.4f Acc@1: %.3f'
                         % (time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
-                           epoch, num_epochs, idx, len(test_dataset) // test_loader.batch_size, 
-                          test_loss / (100 * (idx + 1)), correct / total))
+                           epoch, num_epochs, test_loss / (100 * (idx + 1)), correct / total))
         sys.stdout.flush()
 
     acc = correct / total
-    writer.add_scalar('Test/Accuracy', acc, epoch )
+    # writer.add_scalar('Test/Accuracy', acc, epoch )
     return acc
 
 def adjust_learning_rate(optimizer, lr):
@@ -247,4 +258,4 @@ for _epoch in range(start_epoch, start_epoch + num_epochs):
     }, is_best, checkpoint=args.checkpoint+'_'+args.method+'_'+args.network)
 
 print('Best Acc@1: %.4f' % (best_acc * 100))
-writer.close()
+# writer.close()

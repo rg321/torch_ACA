@@ -22,8 +22,11 @@ class BasicBlock(nn.Module):
             )
 
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = self.bn2(self.conv2(out))
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = F.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
         out = out + self.shortcut(x)
         out = F.relu(out)
         return out
@@ -45,9 +48,12 @@ class BasicBlock2(nn.Module):
         self.shortcut = nn.Sequential()
 
     def forward(self,t, x):
-        self.nfe += 1
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = self.bn2(self.conv2(out))
+        self.nfe = self.nfe + 1
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = F.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
         #out += self.shortcut(x)
         out = F.relu(out)
         return out
@@ -71,6 +77,7 @@ class ResNet(nn.Module):
 
         self.layer4_1 = self._make_layer(512, 1, stride=2)
         self.layer4_2 = self._make_layer2(512, num_blocks[3]-1, stride=1)
+
         self.linear = nn.Linear(512 * block.expansion, num_classes)
 
     def _make_layer(self, planes, num_blocks, stride):
@@ -89,7 +96,9 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = F.relu(out)
         out = self.layer1_1(out)
         out = self.layer1_2(out)
         out = self.layer2_1(out)
@@ -103,7 +112,7 @@ class ResNet(nn.Module):
         out = self.linear(out)
         return out
 
-def ResNet18(ODEBlock):
-      return ResNet(BasicBlock, [2,2,2,2], ODEBlock_ = ODEBlock)
+def ResNet18(ODEBlock, num_classes=10):
+      return ResNet(BasicBlock, [2,2,2,2], ODEBlock_ = ODEBlock, num_classes=num_classes)
 
 

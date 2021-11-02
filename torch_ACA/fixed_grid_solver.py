@@ -17,10 +17,10 @@ class FixedGridSolver(nn.Module):
         self.func = func
         self.t0 = t0
         self.t1 = t1
-        self.h = h
         if h is None:
             print('Stepsize h is required for fixed grid solvers')
-        self.Nt = round(abs(t1 - t0)/h)
+        self.h = h if h is not None else 0.1
+        self.Nt = int(abs(t1 - t0)/self.h)
         self.print_neval = print_neval
         self.neval = 0
 
