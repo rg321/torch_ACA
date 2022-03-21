@@ -8,6 +8,9 @@ For dataset, we use subset of https://www.kaggle.com/c/galaxy-zoo-the-galaxy-cha
 
 Final pruned dataset with 28,790 classes can be found at following link https://drive.google.com/drive/folders/1xsgMao2ozDQ0BJfH5QoEMgvdtxuqCaJu?usp=sharing.
 
+Got the highest accuracy of ~93% with following parameters -:
+python experiments/train.py  --data galaxyzoo --optimizer adam --lr 0.001  --model resnet  --batch_size 32 --test_batch_size 32 --num_epochs 100
+
 
 
 
