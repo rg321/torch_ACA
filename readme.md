@@ -6,4 +6,4 @@ This repo is forked from https://github.com/juntang-zhuang/torch_ACA
 
 For dataset, we use subset of https://www.kaggle.com/c/galaxy-zoo-the-galaxy-challenge. We pick galaxy classifications with high probability only, as described in this paper https://arxiv.org/pdf/1308.3496.pdf. Thus, the original kaggle dataset of 60,000 images is reduced to 28,790 images, with 5 classes viz spiral, edge-on, cigar-shaped smooth, in-between smooth, and completely round smooth.
 
-Final pruned dataset with 28,790 classes can be found at following link https://drive.google.com/drive/folders/1xsgMao2ozDQ0BJfH5QoEMgvdtxuqCaJu?usp=sharing.
+Final pruned dataset with 28,790 classes can be found at following link https://github.com/rg321/galaxy_morphology_filtered_data.
